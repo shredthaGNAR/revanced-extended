@@ -1,6 +1,6 @@
 {
-  "version": "v19.47.53 (patches 5.8.1) (202507311626)",
-  "versionCode": 202507311626,
-  "zipUrl": "https://github.com/shredthaGNAR/revanced-extended/releases/download/202507311626/youtube-ex-dev-revanced-magisk-v19.47.53-arm64-v8a.zip",
+  "version": "v19.47.53 (patches dev.1) (202508031624)",
+  "versionCode": 202508031624,
+  "zipUrl": "https://github.com/shredthaGNAR/revanced-extended/releases/download/202508031624/youtube-ex-dev-revanced-magisk-v19.47.53-arm64-v8a.zip",
   "changelog": "https://raw.githubusercontent.com/shredthaGNAR/revanced-extended/update/build.md"
 }
