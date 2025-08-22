@@ -1,6 +1,6 @@
 {
-  "version": "v8.12.53 (patches dev.4) (202508211633)",
-  "versionCode": 202508211633,
-  "zipUrl": "https://github.com/shredthaGNAR/revanced-extended/releases/download/202508211633/music-ex-dev-revanced-magisk-v8.12.53-arm64-v8a.zip",
+  "version": "v8.12.53 (patches 5.9.1) (202508221623)",
+  "versionCode": 202508221623,
+  "zipUrl": "https://github.com/shredthaGNAR/revanced-extended/releases/download/202508221623/music-ex-dev-revanced-magisk-v8.12.53-arm64-v8a.zip",
   "changelog": "https://raw.githubusercontent.com/shredthaGNAR/revanced-extended/update/build.md"
 }
