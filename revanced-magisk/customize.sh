@@ -86,26 +86,33 @@ install() {
 	ui_print "* Updating $PKG_NAME to $PKG_VER"
 	VERIF_ADB=$(settings get global verifier_verify_adb_installs)
 	settings put global verifier_verify_adb_installs 0
+	settings put global package_verifier_enable 0
 	SZ=$(stat -c "%s" "$MODPATH/$PKG_NAME.apk")
 	for IT in 1 2; do
 		if ! SES=$(pmex install-create --user 0 -i com.android.vending -r -d -S "$SZ"); then
 			ui_print "ERROR: install-create failed"
-			settings put global verifier_verify_adb_installs "$VERIF_ADB"
-			abort "$SES"
+			install_err="$SES"
+			break
 		fi
 		SES=${SES#*[} SES=${SES%]*}
 		set_perm "$MODPATH/$PKG_NAME.apk" 1000 1000 644 u:object_r:apk_data_file:s0
 		if ! op=$(pmex install-write -S "$SZ" "$SES" "$PKG_NAME.apk" "$MODPATH/$PKG_NAME.apk"); then
 			ui_print "ERROR: install-write failed"
-			settings put global verifier_verify_adb_installs "$VERIF_ADB"
-			abort "$op"
+			install_err="$op"
+			break
 		fi
 		if ! op=$(pmex install-commit "$SES"); then
-			if echo "$op" | grep -q INSTALL_FAILED_VERSION_DOWNGRADE; then
-				ui_print "* Handling INSTALL_FAILED_VERSION_DOWNGRADE.."
+			if echo "$op" | grep -q -e INSTALL_FAILED_VERSION_DOWNGRADE -e INSTALL_FAILED_UPDATE_INCOMPATIBLE; then
+				ui_print "* Handling install error"
 				if [ "$IS_SYS" = true ]; then
-					mkdir -p /data/adb/rvhc/empty /data/adb/post-fs-data.d
 					SCNM="/data/adb/post-fs-data.d/$PKG_NAME-uninstall.sh"
+					if [ -f "$SCNM" ]; then
+						ui_print "* Remove the old module. Reboot and reflash!"
+						ui_print ""
+						install_err=" "
+						break
+					fi
+					mkdir -p /data/adb/rvhc/empty /data/adb/post-fs-data.d
 					echo "mount -o bind /data/adb/rvhc/empty $BASEPATH" >"$SCNM"
 					chmod +x "$SCNM"
 					ui_print "* Created the uninstall script."
@@ -122,8 +129,8 @@ install() {
 				fi
 			fi
 			ui_print "ERROR: install-commit failed"
-			settings put global verifier_verify_adb_installs "$VERIF_ADB"
-			abort "$op"
+			install_err="$op"
+			break
 		fi
 		if BASEPATH=$(pmex path "$PKG_NAME"); then
 			BASEPATH=${BASEPATH##*:} BASEPATH=${BASEPATH%/*}
@@ -163,13 +170,24 @@ am force-stop "$PKG_NAME"
 ui_print "* Optimizing $PKG_NAME"
 nohup cmd package compile --reset "$PKG_NAME" >/dev/null 2>&1 &
 
-ui_print "* Cleanup"
-rm -rf "${MODPATH:?}/bin" "$MODPATH/$PKG_NAME.apk"
-
-if [ "$KSU" ] && [ -d "/data/adb/modules/zygisk-assistant" ]; then
-	ui_print "* If you are using zygisk-assistant, you need to"
-	ui_print "  give root permissions to $PKG_NAME"
+if [ "$KSU" ]; then
+	UID=$(dumpsys package "$PKG_NAME" | grep -m1 uid)
+	UID=${UID#*=} UID=${UID%% *}
+	if [ -z "$UID" ]; then
+		UID=$(dumpsys package "$PKG_NAME" | grep -m1 userId)
+		UID=${UID#*=} UID=${UID%% *}
+	fi
+	if [ "$UID" ]; then
+		if ! OP=$("${MODPATH:?}/bin/$ARCH/ksu_profile" "$UID" "$PKG_NAME" 2>&1); then
+			ui_print "ERROR ksu_profile: $OP"
+		fi
+	else
+		ui_print "no UID"
+		dumpsys package "$PKG_NAME" >&2
+	fi
 fi
+
+rm -rf "${MODPATH:?}/bin" "$MODPATH/$PKG_NAME.apk"
 
 ui_print "* Done"
 ui_print "  by thunderkex"
